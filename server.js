@@ -1,54 +1,103 @@
-console.log("Starting Socket Server For Niotron's Socket.io Compoennt...");
+/**
+ * @author Joyce Hong
+ * @email soja0524@gmail.com
+ * @create date 2019-09-02 20:51:10
+ * @modify date 2019-09-02 20:51:10
+ * @desc socket.io server !
+ */
 
-/* 1st npm init -y,
- |
- +- Required Modules
-    |
-    +- 1. express ['npm install express']
-    +- 2. http ['npm unstall http']
-    +- 3. socket.io ['npm install socket.io'] 
-*/
-const express = require("express");
-const app = express();
-const http = require("http").createServer(app);
-const socket = require("socket.io")(http); 
+const express = require('express');
+const bodyParser = require('body-parser');
 
-/* Start HTTP Server ON PORT 80 
-|  In your case you can change the port.
-|  Run 'node server.js' or 'npm start' command on terminal to start the server.
-|  And if you are also using port 80 the simply type localhost/you IPV4 address on your feb. browser and htt enter.
-|  To know your IPV4 address simply type 'ipconfig' in terminal and hit enter.
-*/
-const port = process.env.PORT || 3000;
-http.listen(port, ()=>{
-	console.log("Listning to port " + port);
-});
 
-app.get("/",(req,res)=>{
-    res.send("Wohoo.. Our server is live now");
-});
-/*
-app.post("/broadcast",(req, res)=>{
-    console.log(req.body.mdata);
-    res.send("Wohoo.. Our server is live now");
+const socketio = require('socket.io')
+var app = express();
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(bodyParser.json());
+
+
+var server = app.listen(3000,()=>{
+    console.log('Server is running on port number 3000')
 })
-*/
-socket.on("connect", (io)=>{
-    console.log("New User Connected.  ID : " + io.id);
 
-    /*Start Listning to the client request*/
-    io.on("New_Message",(data)=>{
-        /* 
-           New_Message is the event name on which we'll emit & Listen to data to & from our app
-           you can rename 'New_Message' with your desired event name.
-        */
-        socket.emit("New_Message",data);
+
+//Chat Server
+
+var io = socketio.listen(server)
+
+io.on('connection',function(socket) {
+
+    //The moment one of your client connected to socket.io server it will obtain socket id
+    //Let's print this out.
+    console.log(`Connection : SocketId = ${socket.id}`)
+    //Since we are going to use userName through whole socket connection, Let's make it global.   
+    var userName = '';
+    
+    socket.on('subscribe', function(data) {
+        console.log('subscribe trigged')
+        const room_data = JSON.parse(data)
+        userName = room_data.userName;
+        const roomName = room_data.roomName;
+    
+        socket.join(`${roomName}`)
+        console.log(`Username : ${userName} joined Room Name : ${roomName}`)
+        
+       
+        // Let the other user get notification that user got into the room;
+        // It can be use to indicate that person has read the messages. (Like turns "unread" into "read")
+
+        //TODO: need to chose
+        //io.to : User who has joined can get a event;
+        //socket.broadcast.to : all the users except the user who has joined will get the message
+        // socket.broadcast.to(`${roomName}`).emit('newUserToChatRoom',userName);
+        io.to(`${roomName}`).emit('newUserToChatRoom',userName);
+
+    })
+
+    socket.on('unsubscribe',function(data) {
+        console.log('unsubscribe trigged')
+        const room_data = JSON.parse(data)
+        const userName = room_data.userName;
+        const roomName = room_data.roomName;
+    
+        console.log(`Username : ${userName} leaved Room Name : ${roomName}`)
+        socket.broadcast.to(`${roomName}`).emit('userLeftChatRoom',userName)
+        socket.leave(`${roomName}`)
+    })
+
+    socket.on('newMessage',function(data) {
+        console.log('newMessage triggered')
+
+        const messageData = JSON.parse(data)
+        const messageContent = messageData.messageContent
+        const roomName = messageData.roomName
+
+        console.log(`[Room Number ${roomName}] ${userName} : ${messageContent}`)
+        
+        // Just pass the data that has been passed from the writer socket
+        const chatData = {
+            userName : userName,
+            messageContent : messageContent,
+            roomName : roomName
+        }
+        socket.broadcast.to(`${roomName}`).emit('updateChat',JSON.stringify(chatData)) // Need to be parsed into Kotlin object in Kotlin
+    })
+
+    //If you want to add typing function you can make it like this.
+    
+    // socket.on('typing',function(roomNumber){ //Only roomNumber is needed here
+    //     console.log('typing triggered')
+    //     socket.broadcast.to(`${roomNumber}`).emit('typing')
+    // })
+
+    // socket.on('stopTyping',function(roomNumber){ //Only roomNumber is needed here
+    //     console.log('stopTyping triggered')
+    //     socket.broadcast.to(`${roomNumber}`).emit('stopTyping')
+    // })
+
+    socket.on('disconnect', function () {
+        console.log("One of sockets disconnected from our server.")
     });
-});
-
-/* NOTE
-   I am running this node on my pc which i can access locally to use it in app i have to put this on a live server.  
-   So for now i am using ngrok to make this local server live on internet so i can use it with niotron builder for Socket.io app
-   For more info about how to use ngrok visit https://ngrok.com/
-   It'll generate a random URL like http://93ad60ede325.ngrok.io/ this is your server URL.
-*/
+})
