@@ -1,24 +1,27 @@
-/**
- * @author Joyce Hong
- * @email soja0524@gmail.com
- * @create date 2019-09-02 20:51:10
- * @modify date 2019-09-02 20:51:10
- * @desc socket.io server !
- */
+console.log("Starting Socket Server For Niotron's Socket.io Compoennt...");
 
-const express = require('express');
+/* 1st npm init -y,
+ |
+ +- Required Modules
+    |
+    +- 1. express ['npm install express']
+    +- 2. http ['npm unstall http']
+    +- 3. socket.io ['npm install socket.io'] 
+*/
+const express = require("express");
+const app = express();
+const http = require("http").createServer(app);
+const socket = require("socket.io")(http); 
 const bodyParser = require('body-parser');
-
-
-const socketio = require('socket.io')
-var app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(bodyParser.json());
 
 
-var server = app.listen(3000,()=>{
+const port = process.env.PORT || 3000;
+
+var server = app.listen(port,()=>{
     console.log('Server is running on port number 3000')
 })
 
