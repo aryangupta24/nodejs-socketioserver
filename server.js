@@ -11,7 +11,7 @@ console.log("Starting Socket Server For Niotron's Socket.io Compoennt...");
 const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
-const socket = require("socket.io")(http); 
+const socketio = require("socket.io")(http); 
 const bodyParser = require('body-parser');
 
 app.use(bodyParser.urlencoded({ extended: true }));
